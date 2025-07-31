@@ -1,6 +1,13 @@
-import { pgTable, text, varchar, boolean, timestamp, pgEnum } from 'drizzle-orm/pg-core';
+import { UserRole } from '@/types/user.types';
 import { createId } from '@paralleldrive/cuid2';
-import { UserRole } from '../types/user.types';
+import {
+  boolean,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  varchar,
+} from 'drizzle-orm/pg-core';
 
 // 创建 pgEnum - 必须在 pgTable 外部定义
 export const userRoleEnum = pgEnum('user_role', [
@@ -11,7 +18,9 @@ export const userRoleEnum = pgEnum('user_role', [
 
 // 用户表
 export const users = pgTable('users', {
-  id: text('id').primaryKey().$defaultFn(() => createId()),
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
   email: varchar('email', { length: 255 }).unique().notNull(),
   username: varchar('username', { length: 100 }).unique().notNull(),
   password: text('password').notNull(),
@@ -29,8 +38,12 @@ export const users = pgTable('users', {
 
 // 刷新令牌表
 export const refreshTokens = pgTable('refresh_tokens', {
-  id: text('id').primaryKey().$defaultFn(() => createId()),
-  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  userId: text('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
   token: text('token').unique().notNull(),
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),

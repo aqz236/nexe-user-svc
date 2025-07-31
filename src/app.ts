@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { StatusCodes } from 'http-status-codes';
-import { env } from './config/env.js';
+import { env } from '../config/env.js';
 import { corsMiddleware } from './middleware/cors.middleware.js';
 import { errorHandlerMiddleware } from './middleware/error-handler.middleware.js';
 import { loggerMiddleware } from './middleware/logger.middleware.js';

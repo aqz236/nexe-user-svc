@@ -1,6 +1,6 @@
 import { createMiddleware } from 'hono/factory';
-import { StatusCodes } from 'http-status-codes';
 import { AuthService } from '../services/auth.service.js';
+import { R } from '../utils/response.util.js';
 
 // 扩展 Hono 的上下文类型
 declare module 'hono' {
@@ -20,17 +20,9 @@ export const authMiddleware = createMiddleware(async (c, next) => {
   const authHeader = c.req.header('Authorization');
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return c.json(
-      {
-        error: {
-          code: 'UNAUTHORIZED',
-          message: 'Missing or invalid authorization header',
-          timestamp: new Date().toISOString(),
-          path: c.req.path,
-        },
-      },
-      StatusCodes.UNAUTHORIZED,
-    );
+    return R.of(c)
+      .unauthorized('Missing or invalid authorization header')
+      .build();
   }
 
   const token = authHeader.substring(7); // 移除 "Bearer " 前缀
@@ -40,17 +32,9 @@ export const authMiddleware = createMiddleware(async (c, next) => {
     const user = await authService.validateAccessToken(token);
 
     if (!user) {
-      return c.json(
-        {
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Invalid or expired token',
-            timestamp: new Date().toISOString(),
-            path: c.req.path,
-          },
-        },
-        StatusCodes.UNAUTHORIZED,
-      );
+      return R.of(c)
+        .unauthorized('Invalid or expired token')
+        .build();
     }
 
     // 将用户信息存储到上下文中
@@ -58,17 +42,9 @@ export const authMiddleware = createMiddleware(async (c, next) => {
 
     await next();
   } catch (_error) {
-    return c.json(
-      {
-        error: {
-          code: 'UNAUTHORIZED',
-          message: 'Token validation failed',
-          timestamp: new Date().toISOString(),
-          path: c.req.path,
-        },
-      },
-      StatusCodes.UNAUTHORIZED,
-    );
+    return R.of(c)
+      .unauthorized('Token validation failed')
+      .build();
   }
 });
 
@@ -80,31 +56,15 @@ export const roleMiddleware = (allowedRoles: string[]) => {
     const user = c.get('user');
 
     if (!user) {
-      return c.json(
-        {
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'User not authenticated',
-            timestamp: new Date().toISOString(),
-            path: c.req.path,
-          },
-        },
-        StatusCodes.UNAUTHORIZED,
-      );
+      return R.of(c)
+        .unauthorized('User not authenticated')
+        .build();
     }
 
     if (!allowedRoles.includes(user.role)) {
-      return c.json(
-        {
-          error: {
-            code: 'FORBIDDEN',
-            message: 'Insufficient permissions',
-            timestamp: new Date().toISOString(),
-            path: c.req.path,
-          },
-        },
-        StatusCodes.FORBIDDEN,
-      );
+      return R.of(c)
+        .forbidden('Insufficient permissions')
+        .build();
     }
 
     await next();

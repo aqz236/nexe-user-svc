@@ -1,5 +1,5 @@
-import { SignJWT, jwtVerify, decodeJwt } from 'jose';
-import { jwtConfig, type JwtPayload } from '../config/jwt.js';
+import { SignJWT, decodeJwt, jwtVerify } from 'jose';
+import { jwtConfig, type JwtPayload } from '../../config/jwt.js';
 
 const secret = new TextEncoder().encode(jwtConfig.secret);
 

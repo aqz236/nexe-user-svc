@@ -1,5 +1,4 @@
-import { and, count, desc, eq, isNull, like, or } from 'drizzle-orm';
-import { db } from '../drizzle/db.js';
+import { db } from '#/drizzle/db.js';
 import {
   refreshTokens,
   users,
@@ -7,7 +6,8 @@ import {
   type NewUser,
   type RefreshToken,
   type User,
-} from '../drizzle/schema.js';
+} from '#/drizzle/schema.js';
+import { and, count, desc, eq, isNull, like, or } from 'drizzle-orm';
 import type { UserListQuery } from '../types/user.types.js';
 
 export class UserRepository {

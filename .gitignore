@@ -38,5 +38,5 @@ yarn-error.log*
 *.pem
 
 # drizzle
-src/drizzle/migrations
+drizzle/migrations
 

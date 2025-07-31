@@ -14,6 +14,10 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "#/drizzle/*": ["./drizzle/*"]
+    }
   }
 }

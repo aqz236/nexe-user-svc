@@ -1,7 +1,7 @@
 import type { TSchema } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
 import { createMiddleware } from 'hono/factory';
-import { StatusCodes } from 'http-status-codes';
+import { R } from '../utils/response.util.js';
 
 /**
  * 请求体验证中间件
@@ -19,38 +19,22 @@ export const validateBody = (schema: TSchema) => {
 
       if (!isValid) {
         const errors = [...Value.Errors(schema, body)];
-        return c.json(
-          {
-            error: {
-              code: 'VALIDATION_ERROR',
-              message: 'Request validation failed',
-              details: errors.map(error => ({
-                path: error.path,
-                message: error.schema.description || error.message,
-                expectedType: error.schema.type,
-              })),
-              timestamp: new Date().toISOString(),
-              path: c.req.path,
-            },
-          },
-          StatusCodes.BAD_REQUEST,
-        );
+        const validationDetails = errors.map(error => ({
+          path: error.path,
+          message: error.schema.description || error.message,
+          expectedType: error.schema.type,
+        }));
+
+        return R.of(c)
+          .badRequest('Request validation failed', 'VALIDATION_ERROR')
+          .details(validationDetails)
+          .build();
       }
 
       // 验证通过，继续执行
       await next();
     } catch (_error) {
-      return c.json(
-        {
-          error: {
-            code: 'INVALID_JSON',
-            message: 'Invalid JSON format',
-            timestamp: new Date().toISOString(),
-            path: c.req.path,
-          },
-        },
-        StatusCodes.BAD_REQUEST,
-      );
+      return R.of(c).badRequest('Invalid JSON format', 'INVALID_JSON').build();
     }
   });
 };
@@ -70,22 +54,16 @@ export const validateQuery = (schema: TSchema) => {
 
     if (!isValid) {
       const errors = [...Value.Errors(schema, query)];
-      return c.json(
-        {
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Query parameter validation failed',
-            details: errors.map(error => ({
-              path: error.path,
-              message: error.message,
-              expectedType: error.schema.type,
-            })),
-            timestamp: new Date().toISOString(),
-            path: c.req.path,
-          },
-        },
-        StatusCodes.BAD_REQUEST,
-      );
+      const validationDetails = errors.map(error => ({
+        path: error.path,
+        message: error.schema.description || error.message,
+        expectedType: error.schema.type,
+      }));
+
+      return R.of(c)
+        .badRequest('Query parameter validation failed', 'VALIDATION_ERROR')
+        .details(validationDetails)
+        .build();
     }
 
     await next();
@@ -107,22 +85,16 @@ export const validateParams = (schema: TSchema) => {
 
     if (!isValid) {
       const errors = [...Value.Errors(schema, params)];
-      return c.json(
-        {
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Path parameter validation failed',
-            details: errors.map(error => ({
-              path: error.path,
-              message: error.message,
-              expectedType: error.schema.type,
-            })),
-            timestamp: new Date().toISOString(),
-            path: c.req.path,
-          },
-        },
-        StatusCodes.BAD_REQUEST,
-      );
+      const validationDetails = errors.map(error => ({
+        path: error.path,
+        message: error.schema.description || error.message,
+        expectedType: error.schema.type,
+      }));
+
+      return R.of(c)
+        .badRequest('Path parameter validation failed', 'VALIDATION_ERROR')
+        .details(validationDetails)
+        .build();
     }
 
     await next();

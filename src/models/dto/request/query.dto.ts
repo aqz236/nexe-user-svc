@@ -1,7 +1,7 @@
-import { Type } from '@sinclair/typebox';
+import { type Static, Type } from '@sinclair/typebox';
 
 /**
- * 查询参数相关的验证模式
+ * 查询参数相关的请求 DTO
  */
 
 export const UserListQuerySchema = Type.Object({
@@ -24,3 +24,8 @@ export const PaginationQuerySchema = Type.Object({
 export const SearchQuerySchema = Type.Object({
   search: Type.Optional(Type.String()),
 });
+
+// 类型推断
+export type UserListQueryDto = Static<typeof UserListQuerySchema>;
+export type PaginationQueryDto = Static<typeof PaginationQuerySchema>;
+export type SearchQueryDto = Static<typeof SearchQuerySchema>;

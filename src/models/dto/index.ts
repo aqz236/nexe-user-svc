@@ -1,27 +1,11 @@
 /**
- * 统一导出所有验证模式
+ * DTO 统一导出入口
  *
- * 这个文件作为验证模式的入口点，方便其他模块导入
+ * 清晰的请求和响应 DTO 结构
  */
 
-// 认证相关
-export {
-  LoginSchema,
-  RegisterSchema,
-  RefreshTokenSchema,
-  ChangePasswordSchema,
-} from './auth.schemas.js';
+// 请求 DTO (Schemas + Types)
+export * from './request/index.js';
 
-// 用户相关
-export {
-  UpdateUserSchema,
-  UserStatusSchema,
-  UserIdParamSchema,
-} from './user.schemas.js';
-
-// 查询相关
-export {
-  UserListQuerySchema,
-  PaginationQuerySchema,
-  SearchQuerySchema,
-} from './query.schemas.js';
+// 响应 DTO (Types only)
+export * from './response/index.js';

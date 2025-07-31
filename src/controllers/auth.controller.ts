@@ -1,11 +1,11 @@
 import type { Context } from 'hono';
 import { AuthService } from '../services/auth.service.js';
 import type {
-  ChangePasswordRequest,
-  LoginRequest,
-  RefreshTokenRequest,
-  RegisterRequest,
-} from '../types/auth.types.js';
+  ChangePasswordRequestDto,
+  LoginRequestDto,
+  RefreshTokenRequestDto,
+  RegisterRequestDto,
+} from '../models/dto/index.js';
 import { R } from '../utils/response.util.js';
 
 export class AuthController {
@@ -19,7 +19,8 @@ export class AuthController {
    * 用户注册
    */
   register = async (c: Context) => {
-    const registerData = await c.req.json<RegisterRequest>();
+    // 数据已经通过中间件验证，可以安全获取
+    const registerData = await c.req.json<RegisterRequestDto>();
     const result = await this.authService.register(registerData);
 
     return R.of(c).created('Registration successful').data(result).build();
@@ -29,7 +30,8 @@ export class AuthController {
    * 用户登录
    */
   login = async (c: Context) => {
-    const loginData = await c.req.json<LoginRequest>();
+    // 数据已经通过中间件验证，可以安全获取
+    const loginData = await c.req.json<LoginRequestDto>();
     const result = await this.authService.login(loginData);
 
     return R.of(c).success('Login successful').data(result).build();
@@ -39,7 +41,8 @@ export class AuthController {
    * 刷新访问令牌
    */
   refreshToken = async (c: Context) => {
-    const refreshData = await c.req.json<RefreshTokenRequest>();
+    // 数据已经通过中间件验证，可以安全获取
+    const refreshData = await c.req.json<RefreshTokenRequestDto>();
     const result = await this.authService.refreshAccessToken(refreshData);
 
     return R.of(c).success('Token refreshed successfully').data(result).build();
@@ -69,8 +72,9 @@ export class AuthController {
    * 更改密码
    */
   changePassword = async (c: Context) => {
+    // 数据已经通过中间件验证，可以安全获取
     const user = c.get('user');
-    const changePasswordData = await c.req.json<ChangePasswordRequest>();
+    const changePasswordData = await c.req.json<ChangePasswordRequestDto>();
     await this.authService.changePassword(user.userId, changePasswordData);
 
     return R.of(c).success('Password changed successfully').build();

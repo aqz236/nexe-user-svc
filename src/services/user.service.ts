@@ -1,10 +1,13 @@
+import type {
+  CreateUserRequestDto,
+  UpdateUserRequestDto,
+  UserListQueryDto,
+  UserListResponseDto,
+} from '../models/dto/index.js';
 import { UserRepository } from '../repositories/user.repository.js';
 import {
   UserRole,
-  type CreateUserRequest,
-  type UpdateUserRequest,
   type UserListQuery,
-  type UserListResponse,
   type UserProfile,
 } from '../types/user.types.js';
 import { hashPassword } from '../utils/hash.util.js';
@@ -19,7 +22,7 @@ export class UserService {
   /**
    * 创建新用户
    */
-  async createUser(userData: CreateUserRequest): Promise<UserProfile> {
+  async createUser(userData: CreateUserRequestDto): Promise<UserProfile> {
     // 检查邮箱是否已存在
     const existingEmailUser = await this.userRepository.findByEmail(
       userData.email,
@@ -69,7 +72,7 @@ export class UserService {
    */
   async updateUser(
     id: string,
-    userData: UpdateUserRequest,
+    userData: UpdateUserRequestDto,
   ): Promise<UserProfile | null> {
     // 如果更新用户名，检查是否已存在
     if (userData.username) {
@@ -95,8 +98,17 @@ export class UserService {
   /**
    * 获取用户列表
    */
-  async getUserList(query: UserListQuery): Promise<UserListResponse> {
-    const result = await this.userRepository.findMany(query);
+  async getUserList(query: UserListQueryDto): Promise<UserListResponseDto> {
+    // 转换 DTO 为 Repository 层期望的类型
+    const repositoryQuery: UserListQuery = {
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+      role: query.role as UserRole | undefined,
+      isActive: query.isActive,
+    };
+
+    const result = await this.userRepository.findMany(repositoryQuery);
 
     return {
       users: result.users.map(user => this.toUserProfile(user)),
@@ -182,9 +194,9 @@ export class UserService {
    * 根据角色权限获取用户列表
    */
   async getUserListWithPermission(
-    query: UserListQuery,
+    query: UserListQueryDto,
     operatorRole: UserRole,
-  ): Promise<UserListResponse> {
+  ): Promise<UserListResponseDto> {
     const processedQuery = { ...query };
 
     // 管理员只能看到普通用户
@@ -201,7 +213,7 @@ export class UserService {
    */
   async updateUserWithPermission(
     id: string,
-    updateData: UpdateUserRequest,
+    updateData: UpdateUserRequestDto,
     operatorRole: UserRole,
   ): Promise<UserProfile | null> {
     // 先检查目标用户是否存在

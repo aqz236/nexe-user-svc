@@ -1,12 +1,12 @@
 import { UserRepository } from '../repositories/user.repository.js';
 import type {
-  ChangePasswordRequest,
-  LoginRequest,
-  LoginResponse,
-  RefreshTokenRequest,
-  RefreshTokenResponse,
-  RegisterRequest,
-} from '../types/auth.types.js';
+  ChangePasswordRequestDto,
+  LoginRequestDto,
+  RefreshTokenRequestDto,
+  RegisterRequestDto,
+  LoginResponseDto,
+  RefreshTokenResponseDto,
+} from '../models/dto/index.js';
 import { hashPassword, verifyPassword } from '../utils/hash.util.js';
 import {
   generateAccessToken,
@@ -27,7 +27,7 @@ export class AuthService {
   /**
    * 用户注册
    */
-  async register(registerData: RegisterRequest): Promise<LoginResponse> {
+  async register(registerData: RegisterRequestDto): Promise<LoginResponseDto> {
     // 创建用户
     const user = await this.userService.createUser(registerData);
 
@@ -70,7 +70,7 @@ export class AuthService {
   /**
    * 用户登录
    */
-  async login(loginData: LoginRequest): Promise<LoginResponse> {
+  async login(loginData: LoginRequestDto): Promise<LoginResponseDto> {
     // 查找用户
     const user = await this.userRepository.findByEmail(loginData.email);
     if (!user) {
@@ -134,8 +134,8 @@ export class AuthService {
    * 刷新访问令牌
    */
   async refreshAccessToken(
-    refreshData: RefreshTokenRequest,
-  ): Promise<RefreshTokenResponse> {
+    refreshData: RefreshTokenRequestDto,
+  ): Promise<RefreshTokenResponseDto> {
     // 验证刷新令牌
     let payload;
     try {
@@ -212,7 +212,7 @@ export class AuthService {
    */
   async changePassword(
     userId: string,
-    changePasswordData: ChangePasswordRequest,
+    changePasswordData: ChangePasswordRequestDto,
   ): Promise<void> {
     // 获取用户
     const user = await this.userRepository.findById(userId);

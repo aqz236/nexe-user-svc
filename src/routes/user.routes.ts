@@ -11,10 +11,10 @@ import {
   validateQuery,
 } from '../middleware/validation.middleware.js';
 import {
-  UpdateUserSchema,
+  UpdateUserRequestSchema,
   UserIdParamSchema,
   UserListQuerySchema,
-  UserStatusSchema,
+  UserStatusRequestSchema,
 } from '../models/dto/index.js';
 
 const userRouter = new Hono();
@@ -27,7 +27,7 @@ userRouter.use('/*', authMiddleware);
 userRouter.get('/me', userController.getCurrentUser);
 userRouter.put(
   '/me',
-  validateBody(UpdateUserSchema),
+  validateBody(UpdateUserRequestSchema),
   userController.updateCurrentUser,
 );
 
@@ -46,7 +46,7 @@ userRouter.get(
 userRouter.put(
   '/admin/:id',
   validateParams(UserIdParamSchema),
-  validateBody(UpdateUserSchema),
+  validateBody(UpdateUserRequestSchema),
   userController.updateUser,
 );
 userRouter.delete(
@@ -57,7 +57,7 @@ userRouter.delete(
 userRouter.patch(
   '/admin/:id/status',
   validateParams(UserIdParamSchema),
-  validateBody(UserStatusSchema),
+  validateBody(UserStatusRequestSchema),
   userController.updateUserStatus,
 );
 
@@ -76,7 +76,7 @@ userRouter.get(
 userRouter.put(
   '/superadmin/:id',
   validateParams(UserIdParamSchema),
-  validateBody(UpdateUserSchema),
+  validateBody(UpdateUserRequestSchema),
   userController.updateUser,
 );
 userRouter.delete(
@@ -87,7 +87,7 @@ userRouter.delete(
 userRouter.patch(
   '/superadmin/:id/status',
   validateParams(UserIdParamSchema),
-  validateBody(UserStatusSchema),
+  validateBody(UserStatusRequestSchema),
   userController.updateUserStatus,
 );
 

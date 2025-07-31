@@ -3,10 +3,10 @@ import { AuthController } from '../controllers/auth.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { validateBody } from '../middleware/validation.middleware.js';
 import {
-  ChangePasswordSchema,
-  LoginSchema,
-  RefreshTokenSchema,
-  RegisterSchema,
+  ChangePasswordRequestSchema,
+  LoginRequestSchema,
+  RefreshTokenRequestSchema,
+  RegisterRequestSchema,
 } from '../models/dto/index.js';
 
 const authRouter = new Hono();
@@ -15,13 +15,13 @@ const authController = new AuthController();
 // 公开路由（无需认证）
 authRouter.post(
   '/register',
-  validateBody(RegisterSchema),
+  validateBody(RegisterRequestSchema),
   authController.register,
 );
-authRouter.post('/login', validateBody(LoginSchema), authController.login);
+authRouter.post('/login', validateBody(LoginRequestSchema), authController.login);
 authRouter.post(
   '/refresh',
-  validateBody(RefreshTokenSchema),
+  validateBody(RefreshTokenRequestSchema),
   authController.refreshToken,
 );
 
@@ -32,7 +32,7 @@ authRouter.post('/logout', authController.logout);
 authRouter.post('/logout-all', authController.logoutAll);
 authRouter.post(
   '/change-password',
-  validateBody(ChangePasswordSchema),
+  validateBody(ChangePasswordRequestSchema),
   authController.changePassword,
 );
 authRouter.get('/me', authController.me);

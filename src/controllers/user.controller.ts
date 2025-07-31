@@ -1,10 +1,10 @@
 import type { Context } from 'hono';
-import { UserService } from '../services/user.service.js';
 import type {
-  UpdateUserRequest,
-  UserListQuery,
-  UserRole,
-} from '../types/user.types.js';
+  UpdateUserRequestDto,
+  UserListQueryDto,
+} from '../models/dto/index.js';
+import { UserService } from '../services/user.service.js';
+import type { UserRole } from '../types/user.types.js';
 import { R } from '../utils/response.util.js';
 
 export class UserController {
@@ -36,27 +36,20 @@ export class UserController {
    */
   updateCurrentUser = async (c: Context) => {
     const user = c.get('user');
-    const updateData = await c.req.json<UpdateUserRequest>();
+    const updateData = await c.req.json<UpdateUserRequestDto>();
+    const updatedUser = await this.userService.updateUser(
+      user.userId,
+      updateData,
+    );
 
-    try {
-      const updatedUser = await this.userService.updateUser(
-        user.userId,
-        updateData,
-      );
-
-      if (!updatedUser) {
-        return R.of(c).notFound('User not found').build();
-      }
-
-      return R.of(c)
-        .success('User information updated successfully')
-        .data(updatedUser)
-        .build();
-    } catch (error) {
-      return R.of(c)
-        .badRequest(error instanceof Error ? error.message : 'Update failed')
-        .build();
+    if (!updatedUser) {
+      return R.of(c).notFound('User not found').build();
     }
+
+    return R.of(c)
+      .success('User information updated successfully')
+      .data(updatedUser)
+      .build();
   };
 
   /**
@@ -66,25 +59,19 @@ export class UserController {
     const { id } = c.req.param();
     const currentUser = c.get('user');
 
-    try {
-      const userProfile = await this.userService.getUserByIdWithPermission(
-        id,
-        currentUser.role as UserRole,
-      );
+    const userProfile = await this.userService.getUserByIdWithPermission(
+      id,
+      currentUser.role as UserRole,
+    );
 
-      if (!userProfile) {
-        return R.of(c).notFound('User not found').build();
-      }
-
-      return R.of(c)
-        .success('User information retrieved successfully')
-        .data(userProfile)
-        .build();
-    } catch (error) {
-      return R.of(c)
-        .forbidden(error instanceof Error ? error.message : 'Access denied')
-        .build();
+    if (!userProfile) {
+      return R.of(c).notFound('User not found').build();
     }
+
+    return R.of(c)
+      .success('User information retrieved successfully')
+      .data(userProfile)
+      .build();
   };
 
   /**
@@ -95,9 +82,9 @@ export class UserController {
     const queryParams = c.req.query();
 
     // 转换查询参数类型
-    const processedQuery: UserListQuery = {
+    const processedQuery: UserListQueryDto = {
       search: queryParams.search as string | undefined,
-      role: queryParams.role as UserListQuery['role'],
+      role: queryParams.role as UserListQueryDto['role'],
       page: queryParams.page
         ? parseInt(queryParams.page as string, 10)
         : undefined,
@@ -109,21 +96,15 @@ export class UserController {
         : undefined,
     };
 
-    try {
-      const result = await this.userService.getUserListWithPermission(
-        processedQuery,
-        currentUser.role as UserRole,
-      );
+    const result = await this.userService.getUserListWithPermission(
+      processedQuery,
+      currentUser.role as UserRole,
+    );
 
-      return R.of(c)
-        .success('User list retrieved successfully')
-        .data(result)
-        .build();
-    } catch (error) {
-      return R.of(c)
-        .forbidden(error instanceof Error ? error.message : 'Access denied')
-        .build();
-    }
+    return R.of(c)
+      .success('User list retrieved successfully')
+      .data(result)
+      .build();
   };
 
   /**
@@ -132,28 +113,22 @@ export class UserController {
   updateUser = async (c: Context) => {
     const { id } = c.req.param();
     const currentUser = c.get('user');
-    const updateData = await c.req.json<UpdateUserRequest>();
+    const updateData = await c.req.json<UpdateUserRequestDto>();
 
-    try {
-      const updatedUser = await this.userService.updateUserWithPermission(
-        id,
-        updateData,
-        currentUser.role as UserRole,
-      );
+    const updatedUser = await this.userService.updateUserWithPermission(
+      id,
+      updateData,
+      currentUser.role as UserRole,
+    );
 
-      if (!updatedUser) {
-        return R.of(c).notFound('User not found').build();
-      }
-
-      return R.of(c)
-        .success('User information updated successfully')
-        .data(updatedUser)
-        .build();
-    } catch (error) {
-      return R.of(c)
-        .forbidden(error instanceof Error ? error.message : 'Access denied')
-        .build();
+    if (!updatedUser) {
+      return R.of(c).notFound('User not found').build();
     }
+
+    return R.of(c)
+      .success('User information updated successfully')
+      .data(updatedUser)
+      .build();
   };
 
   /**
@@ -163,22 +138,16 @@ export class UserController {
     const { id } = c.req.param();
     const currentUser = c.get('user');
 
-    try {
-      const deleted = await this.userService.deleteUserWithPermission(
-        id,
-        currentUser.role as UserRole,
-      );
+    const deleted = await this.userService.deleteUserWithPermission(
+      id,
+      currentUser.role as UserRole,
+    );
 
-      if (!deleted) {
-        return R.of(c).notFound('User not found').build();
-      }
-
-      return R.of(c).success('User deleted successfully').build();
-    } catch (error) {
-      return R.of(c)
-        .forbidden(error instanceof Error ? error.message : 'Access denied')
-        .build();
+    if (!deleted) {
+      return R.of(c).notFound('User not found').build();
     }
+
+    return R.of(c).success('User deleted successfully').build();
   };
 
   /**
@@ -189,25 +158,19 @@ export class UserController {
     const currentUser = c.get('user');
     const { isActive } = await c.req.json<{ isActive: boolean }>();
 
-    try {
-      const updatedUser = await this.userService.updateUserStatusWithPermission(
-        id,
-        isActive,
-        currentUser.role as UserRole,
-      );
+    const updatedUser = await this.userService.updateUserStatusWithPermission(
+      id,
+      isActive,
+      currentUser.role as UserRole,
+    );
 
-      if (!updatedUser) {
-        return R.of(c).notFound('User not found').build();
-      }
-
-      return R.of(c)
-        .success('User status updated successfully')
-        .data(updatedUser)
-        .build();
-    } catch (error) {
-      return R.of(c)
-        .forbidden(error instanceof Error ? error.message : 'Access denied')
-        .build();
+    if (!updatedUser) {
+      return R.of(c).notFound('User not found').build();
     }
+
+    return R.of(c)
+      .success('User status updated successfully')
+      .data(updatedUser)
+      .build();
   };
 }

@@ -1,9 +1,29 @@
-import { Hono } from 'hono'
+import { createLogger } from '@nexe/logger';
+import app from './app.js';
+import { env } from './config/env.js';
 
-const app = new Hono()
+const logger = createLogger('server');
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-})
+// 启动服务器
+const server = Bun.serve({
+  port: env.PORT,
+  fetch: app.fetch,
+  reusePort: true,
+});
 
-export default app
+logger.info(`🚀 User Service is running on port ${server.port}`);
+logger.info(`🌍 Environment: ${env.NODE_ENV}`);
+logger.info(`📊 Health check: http://localhost:${server.port}/health`);
+
+// 优雅关闭
+process.on('SIGINT', () => {
+  logger.info('⏹️ Shutting down server...');
+  server.stop();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  logger.info('⏹️ Shutting down server...');
+  server.stop();
+  process.exit(0);
+});

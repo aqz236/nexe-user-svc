@@ -1,6 +1,10 @@
 import { Hono } from 'hono';
 import { UserController } from '../controllers/user.controller.js';
-import { authMiddleware, adminMiddleware, superAdminMiddleware } from '../middleware/auth.middleware.js';
+import {
+  adminMiddleware,
+  authMiddleware,
+  superAdminMiddleware,
+} from '../middleware/auth.middleware.js';
 
 const userRouter = new Hono();
 const userController = new UserController();
@@ -14,18 +18,18 @@ userRouter.put('/me', userController.updateCurrentUser);
 
 // 管理员路由（只能操作普通用户）
 userRouter.use('/admin/*', adminMiddleware);
-userRouter.get('/admin/list', userController.getAdminUserList);
-userRouter.get('/admin/:id', userController.getAdminUserById);
-userRouter.put('/admin/:id', userController.updateAdminUser);
-userRouter.delete('/admin/:id', userController.deleteAdminUser);
-userRouter.patch('/admin/:id/status', userController.updateAdminUserStatus);
+userRouter.get('/admin/list', userController.getUserList);
+userRouter.get('/admin/:id', userController.getUserById);
+userRouter.put('/admin/:id', userController.updateUser);
+userRouter.delete('/admin/:id', userController.deleteUser);
+userRouter.patch('/admin/:id/status', userController.updateUserStatus);
 
 // 超级管理员专用路由（可以操作所有用户）
 userRouter.use('/superadmin/*', superAdminMiddleware);
-userRouter.get('/superadmin/list', userController.getSuperAdminUserList);
-userRouter.get('/superadmin/:id', userController.getSuperAdminUserById);
-userRouter.put('/superadmin/:id', userController.updateSuperAdminUser);
-userRouter.delete('/superadmin/:id', userController.deleteSuperAdminUser);
-userRouter.patch('/superadmin/:id/status', userController.updateSuperAdminUserStatus);
+userRouter.get('/superadmin/list', userController.getUserList);
+userRouter.get('/superadmin/:id', userController.getUserById);
+userRouter.put('/superadmin/:id', userController.updateUser);
+userRouter.delete('/superadmin/:id', userController.deleteUser);
+userRouter.patch('/superadmin/:id/status', userController.updateUserStatus);
 
 export { userRouter };

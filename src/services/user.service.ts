@@ -1,11 +1,11 @@
 import { UserRepository } from '../repositories/user.repository.js';
-import type {
-  CreateUserRequest,
-  UpdateUserRequest,
-  UserListQuery,
-  UserListResponse,
-  UserProfile,
+import {
   UserRole,
+  type CreateUserRequest,
+  type UpdateUserRequest,
+  type UserListQuery,
+  type UserListResponse,
+  type UserProfile,
 } from '../types/user.types.js';
 import { hashPassword } from '../utils/hash.util.js';
 
@@ -133,6 +133,138 @@ export class UserService {
    */
   async updateLastLogin(id: string): Promise<void> {
     await this.userRepository.updateLastLogin(id);
+  }
+
+  /**
+   * 检查用户是否可以操作目标用户（基于角色权限）
+   */
+  private canOperateOnUser(
+    operatorRole: UserRole,
+    targetRole: UserRole,
+  ): boolean {
+    // 超级管理员可以操作所有用户
+    if (operatorRole === UserRole.SUPER_ADMIN) {
+      return true;
+    }
+
+    // 管理员只能操作普通用户
+    if (operatorRole === UserRole.ADMIN) {
+      return targetRole === UserRole.USER;
+    }
+
+    // 普通用户不能操作其他用户
+    return false;
+  }
+
+  /**
+   * 根据角色权限获取用户信息
+   */
+  async getUserByIdWithPermission(
+    id: string,
+    operatorRole: UserRole,
+  ): Promise<UserProfile | null> {
+    const user = await this.getUserById(id);
+    if (!user) {
+      return null;
+    }
+
+    // 检查操作权限
+    if (!this.canOperateOnUser(operatorRole, user.role)) {
+      throw new Error(
+        'Access denied: Insufficient permissions to view this user',
+      );
+    }
+
+    return user;
+  }
+
+  /**
+   * 根据角色权限获取用户列表
+   */
+  async getUserListWithPermission(
+    query: UserListQuery,
+    operatorRole: UserRole,
+  ): Promise<UserListResponse> {
+    const processedQuery = { ...query };
+
+    // 管理员只能看到普通用户
+    if (operatorRole === UserRole.ADMIN) {
+      processedQuery.role = UserRole.USER;
+    }
+    // 超级管理员可以看到所有用户，保持原始查询
+
+    return this.getUserList(processedQuery);
+  }
+
+  /**
+   * 根据角色权限更新用户信息
+   */
+  async updateUserWithPermission(
+    id: string,
+    updateData: UpdateUserRequest,
+    operatorRole: UserRole,
+  ): Promise<UserProfile | null> {
+    // 先检查目标用户是否存在
+    const targetUser = await this.getUserById(id);
+    if (!targetUser) {
+      return null;
+    }
+
+    // 检查操作权限
+    if (!this.canOperateOnUser(operatorRole, targetUser.role)) {
+      throw new Error(
+        'Access denied: Insufficient permissions to update this user',
+      );
+    }
+
+    return this.updateUser(id, updateData);
+  }
+
+  /**
+   * 根据角色权限删除用户
+   */
+  async deleteUserWithPermission(
+    id: string,
+    operatorRole: UserRole,
+  ): Promise<boolean> {
+    // 先检查目标用户是否存在
+    const targetUser = await this.getUserById(id);
+    if (!targetUser) {
+      return false;
+    }
+
+    // 检查操作权限
+    if (!this.canOperateOnUser(operatorRole, targetUser.role)) {
+      throw new Error(
+        'Access denied: Insufficient permissions to delete this user',
+      );
+    }
+
+    return this.deleteUser(id);
+  }
+
+  /**
+   * 根据角色权限更新用户状态
+   */
+  async updateUserStatusWithPermission(
+    id: string,
+    isActive: boolean,
+    operatorRole: UserRole,
+  ): Promise<UserProfile | null> {
+    // 先检查目标用户是否存在
+    const targetUser = await this.getUserById(id);
+    if (!targetUser) {
+      return null;
+    }
+
+    // 检查操作权限
+    if (!this.canOperateOnUser(operatorRole, targetUser.role)) {
+      throw new Error(
+        'Access denied: Insufficient permissions to update this user status',
+      );
+    }
+
+    return this.updateUserStatus(id, isActive);
   }
 
   /**

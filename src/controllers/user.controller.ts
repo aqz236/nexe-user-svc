@@ -1,8 +1,11 @@
 import type { Context } from 'hono';
-import { R } from '../utils/response.util.js';
 import { UserService } from '../services/user.service.js';
-import type { UpdateUserRequest, UserListQuery } from '../types/user.types.js';
-import { UserRole } from '../types/user.types.js';
+import type {
+  UpdateUserRequest,
+  UserListQuery,
+  UserRole,
+} from '../types/user.types.js';
+import { R } from '../utils/response.util.js';
 
 export class UserController {
   private userService: UserService;
@@ -19,9 +22,7 @@ export class UserController {
     const userProfile = await this.userService.getUserById(user.userId);
 
     if (!userProfile) {
-      return R.of(c)
-        .notFound('User not found')
-        .build();
+      return R.of(c).notFound('User not found').build();
     }
 
     return R.of(c)
@@ -37,78 +38,66 @@ export class UserController {
     const user = c.get('user');
     const updateData = await c.req.json<UpdateUserRequest>();
 
-    const updatedUser = await this.userService.updateUser(
-      user.userId,
-      updateData,
-    );
+    try {
+      const updatedUser = await this.userService.updateUser(
+        user.userId,
+        updateData,
+      );
 
-    if (!updatedUser) {
+      if (!updatedUser) {
+        return R.of(c).notFound('User not found').build();
+      }
+
       return R.of(c)
-        .notFound('User not found')
+        .success('User information updated successfully')
+        .data(updatedUser)
+        .build();
+    } catch (error) {
+      return R.of(c)
+        .badRequest(error instanceof Error ? error.message : 'Update failed')
         .build();
     }
-
-    return R.of(c)
-      .success('User information updated successfully')
-      .data(updatedUser)
-      .build();
   };
 
   /**
-   * 获取指定用户信息（管理员功能 - 只能查看普通用户）
+   * 获取指定用户信息（管理员/超级管理员功能）
    */
-  getAdminUserById = async (c: Context) => {
+  getUserById = async (c: Context) => {
     const { id } = c.req.param();
-    const userProfile = await this.userService.getUserById(id);
+    const currentUser = c.get('user');
 
-    if (!userProfile) {
+    try {
+      const userProfile = await this.userService.getUserByIdWithPermission(
+        id,
+        currentUser.role as UserRole,
+      );
+
+      if (!userProfile) {
+        return R.of(c).notFound('User not found').build();
+      }
+
       return R.of(c)
-        .notFound('User not found')
+        .success('User information retrieved successfully')
+        .data(userProfile)
+        .build();
+    } catch (error) {
+      return R.of(c)
+        .forbidden(error instanceof Error ? error.message : 'Access denied')
         .build();
     }
-
-    // 管理员不能查看其他管理员或超级管理员的信息
-    if (userProfile.role !== UserRole.USER) {
-      return R.of(c)
-        .forbidden('Access denied: Cannot view admin/super admin users')
-        .build();
-    }
-
-    return R.of(c)
-      .success('User information retrieved successfully')
-      .data(userProfile)
-      .build();
   };
 
   /**
-   * 获取指定用户信息（超级管理员功能 - 可以查看所有用户）
+   * 获取用户列表（管理员/超级管理员功能）
    */
-  getSuperAdminUserById = async (c: Context) => {
-    const { id } = c.req.param();
-    const userProfile = await this.userService.getUserById(id);
-
-    if (!userProfile) {
-      return R.of(c)
-        .notFound('User not found')
-        .build();
-    }
-
-    return R.of(c)
-      .success('User information retrieved successfully')
-      .data(userProfile)
-      .build();
-  };
-
-  /**
-   * 获取用户列表（管理员功能 - 只能看到普通用户）
-   */
-  getAdminUserList = async (c: Context) => {
+  getUserList = async (c: Context) => {
+    const currentUser = c.get('user');
     const queryParams = c.req.query();
 
     // 转换查询参数类型
     const processedQuery: UserListQuery = {
       search: queryParams.search as string | undefined,
-      role: UserRole.USER, // 管理员只能看到普通用户
+      role: queryParams.role as UserListQuery['role'],
       page: queryParams.page
         ? parseInt(queryParams.page as string, 10)
         : undefined,
@@ -120,188 +109,105 @@ export class UserController {
         : undefined,
     };
 
-    const result = await this.userService.getUserList(processedQuery);
+    try {
+      const result = await this.userService.getUserListWithPermission(
+        processedQuery,
+        currentUser.role as UserRole,
+      );
 
-    return R.of(c)
-      .success('User list retrieved successfully')
-      .data(result)
-      .build();
+      return R.of(c)
+        .success('User list retrieved successfully')
+        .data(result)
+        .build();
+    } catch (error) {
+      return R.of(c)
+        .forbidden(error instanceof Error ? error.message : 'Access denied')
+        .build();
+    }
   };
 
   /**
-   * 获取用户列表（超级管理员功能 - 可以看到所有用户）
+   * 更新用户信息（管理员/超级管理员功能）
    */
-  getSuperAdminUserList = async (c: Context) => {
-    const queryParams = c.req.query();
-
-    // 转换查询参数类型
-    const processedQuery: UserListQuery = {
-      search: queryParams.search as string | undefined,
-      role: queryParams.role as UserListQuery['role'], // 超级管理员可以看到所有角色
-      page: queryParams.page
-        ? parseInt(queryParams.page as string, 10)
-        : undefined,
-      limit: queryParams.limit
-        ? parseInt(queryParams.limit as string, 10)
-        : undefined,
-      isActive: queryParams.isActive
-        ? (queryParams.isActive as string) === 'true'
-        : undefined,
-    };
-
-    const result = await this.userService.getUserList(processedQuery);
-
-    return R.of(c)
-      .success('All users list retrieved successfully')
-      .data(result)
-      .build();
-  };
-
-  /**
-   * 更新用户信息（管理员功能 - 只能更新普通用户）
-   */
-  updateAdminUser = async (c: Context) => {
+  updateUser = async (c: Context) => {
     const { id } = c.req.param();
+    const currentUser = c.get('user');
     const updateData = await c.req.json<UpdateUserRequest>();
 
-    // 先检查目标用户是否存在
-    const targetUser = await this.userService.getUserById(id);
-    if (!targetUser) {
+    try {
+      const updatedUser = await this.userService.updateUserWithPermission(
+        id,
+        updateData,
+        currentUser.role as UserRole,
+      );
+
+      if (!updatedUser) {
+        return R.of(c).notFound('User not found').build();
+      }
+
       return R.of(c)
-        .notFound('User not found')
+        .success('User information updated successfully')
+        .data(updatedUser)
+        .build();
+    } catch (error) {
+      return R.of(c)
+        .forbidden(error instanceof Error ? error.message : 'Access denied')
         .build();
     }
-
-    // 管理员不能更新其他管理员或超级管理员
-    if (targetUser.role !== UserRole.USER) {
-      return R.of(c)
-        .forbidden('Access denied: Cannot update admin/super admin users')
-        .build();
-    }
-
-    const updatedUser = await this.userService.updateUser(id, updateData);
-
-    return R.of(c)
-      .success('User information updated successfully')
-      .data(updatedUser)
-      .build();
   };
 
   /**
-   * 更新用户信息（超级管理员功能 - 可以更新所有用户）
+   * 删除用户（管理员/超级管理员功能）
    */
-  updateSuperAdminUser = async (c: Context) => {
+  deleteUser = async (c: Context) => {
     const { id } = c.req.param();
-    const updateData = await c.req.json<UpdateUserRequest>();
+    const currentUser = c.get('user');
 
-    const updatedUser = await this.userService.updateUser(id, updateData);
+    try {
+      const deleted = await this.userService.deleteUserWithPermission(
+        id,
+        currentUser.role as UserRole,
+      );
 
-    if (!updatedUser) {
+      if (!deleted) {
+        return R.of(c).notFound('User not found').build();
+      }
+
+      return R.of(c).success('User deleted successfully').build();
+    } catch (error) {
       return R.of(c)
-        .notFound('User not found')
+        .forbidden(error instanceof Error ? error.message : 'Access denied')
         .build();
     }
-
-    return R.of(c)
-      .success('User information updated successfully')
-      .data(updatedUser)
-      .build();
   };
 
   /**
-   * 删除用户（管理员功能 - 只能删除普通用户）
+   * 更新用户状态（管理员/超级管理员功能）
    */
-  deleteAdminUser = async (c: Context) => {
+  updateUserStatus = async (c: Context) => {
     const { id } = c.req.param();
-
-    // 先检查目标用户是否存在
-    const targetUser = await this.userService.getUserById(id);
-    if (!targetUser) {
-      return R.of(c)
-        .notFound('User not found')
-        .build();
-    }
-
-    // 管理员不能删除其他管理员或超级管理员
-    if (targetUser.role !== UserRole.USER) {
-      return R.of(c)
-        .forbidden('Access denied: Cannot delete admin/super admin users')
-        .build();
-    }
-
-    await this.userService.deleteUser(id);
-
-    return R.of(c)
-      .success('User deleted successfully')
-      .build();
-  };
-
-  /**
-   * 删除用户（超级管理员功能 - 可以删除所有用户）
-   */
-  deleteSuperAdminUser = async (c: Context) => {
-    const { id } = c.req.param();
-    const deleted = await this.userService.deleteUser(id);
-
-    if (!deleted) {
-      return R.of(c)
-        .notFound('User not found')
-        .build();
-    }
-
-    return R.of(c)
-      .success('User deleted successfully')
-      .build();
-  };
-
-  /**
-   * 更新用户状态（管理员功能 - 只能更新普通用户状态）
-   */
-  updateAdminUserStatus = async (c: Context) => {
-    const { id } = c.req.param();
+    const currentUser = c.get('user');
     const { isActive } = await c.req.json<{ isActive: boolean }>();
 
-    // 先检查目标用户是否存在
-    const targetUser = await this.userService.getUserById(id);
-    if (!targetUser) {
+    try {
+      const updatedUser = await this.userService.updateUserStatusWithPermission(
+        id,
+        isActive,
+        currentUser.role as UserRole,
+      );
+
+      if (!updatedUser) {
+        return R.of(c).notFound('User not found').build();
+      }
+
       return R.of(c)
-        .notFound('User not found')
+        .success('User status updated successfully')
+        .data(updatedUser)
+        .build();
+    } catch (error) {
+      return R.of(c)
+        .forbidden(error instanceof Error ? error.message : 'Access denied')
         .build();
     }
-
-    // 管理员不能更新其他管理员或超级管理员的状态
-    if (targetUser.role !== UserRole.USER) {
-      return R.of(c)
-        .forbidden('Access denied: Cannot update admin/super admin user status')
-        .build();
-    }
-
-    const updatedUser = await this.userService.updateUserStatus(id, isActive);
-
-    return R.of(c)
-      .success('User status updated successfully')
-      .data(updatedUser)
-      .build();
-  };
-
-  /**
-   * 更新用户状态（超级管理员功能 - 可以更新所有用户状态）
-   */
-  updateSuperAdminUserStatus = async (c: Context) => {
-    const { id } = c.req.param();
-    const { isActive } = await c.req.json<{ isActive: boolean }>();
-
-    const updatedUser = await this.userService.updateUserStatus(id, isActive);
-
-    if (!updatedUser) {
-      return R.of(c)
-        .notFound('User not found')
-        .build();
-    }
-
-    return R.of(c)
-      .success('User status updated successfully')
-      .data(updatedUser)
-      .build();
   };
 }

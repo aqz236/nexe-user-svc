@@ -1,57 +1,34 @@
+import type { TSchema } from '@sinclair/typebox';
+import { Value } from '@sinclair/typebox/value';
 import { createMiddleware } from 'hono/factory';
 import { StatusCodes } from 'http-status-codes';
-import { createLogger } from '@nexe/logger';
-
-const logger = createLogger('validation');
 
 /**
- * 通用错误处理中间件
+ * 请求体验证中间件
+ *
+ * @param schema - TypeBox schema 用于验证
+ * @returns Hono 中间件
  */
-export const errorHandlerMiddleware = createMiddleware(async (c, next) => {
-  try {
-    await next();
-  } catch (error) {
-    logger.error('Error:', error);
+export const validateBody = (schema: TSchema) => {
+  return createMiddleware(async (c, next) => {
+    try {
+      const body = await c.req.json();
 
-    if (error instanceof Error) {
-      // 处理已知错误类型
-      if (error.message.includes('already exists')) {
+      // 使用 TypeBox 验证数据
+      const isValid = Value.Check(schema, body);
+
+      if (!isValid) {
+        const errors = [...Value.Errors(schema, body)];
         return c.json(
           {
             error: {
-              code: 'CONFLICT',
-              message: error.message,
-              timestamp: new Date().toISOString(),
-              path: c.req.path,
-            },
-          },
-          StatusCodes.CONFLICT,
-        );
-      }
-
-      if (error.message.includes('not found')) {
-        return c.json(
-          {
-            error: {
-              code: 'NOT_FOUND',
-              message: error.message,
-              timestamp: new Date().toISOString(),
-              path: c.req.path,
-            },
-          },
-          StatusCodes.NOT_FOUND,
-        );
-      }
-
-      if (
-        error.message.includes('Invalid') ||
-        error.message.includes('incorrect')
-      ) {
-        return c.json(
-          {
-            error: {
-              code: 'BAD_REQUEST',
-              message: error.message,
+              code: 'VALIDATION_ERROR',
+              message: 'Request validation failed',
+              details: errors.map(error => ({
+                path: error.path,
+                message: error.schema.errorMessage || error.message,
+                expectedType: error.schema.type,
+              })),
               timestamp: new Date().toISOString(),
               path: c.req.path,
             },
@@ -60,32 +37,94 @@ export const errorHandlerMiddleware = createMiddleware(async (c, next) => {
         );
       }
 
-      if (error.message.includes('inactive')) {
-        return c.json(
-          {
-            error: {
-              code: 'FORBIDDEN',
-              message: error.message,
-              timestamp: new Date().toISOString(),
-              path: c.req.path,
-            },
+      // 验证通过，继续执行
+      await next();
+    } catch (_error) {
+      return c.json(
+        {
+          error: {
+            code: 'INVALID_JSON',
+            message: 'Invalid JSON format',
+            timestamp: new Date().toISOString(),
+            path: c.req.path,
           },
-          StatusCodes.FORBIDDEN,
-        );
-      }
+        },
+        StatusCodes.BAD_REQUEST,
+      );
+    }
+  });
+};
+
+/**
+ * 查询参数验证中间件
+ *
+ * @param schema - TypeBox schema 用于验证
+ * @returns Hono 中间件
+ */
+export const validateQuery = (schema: TSchema) => {
+  return createMiddleware(async (c, next) => {
+    const query = c.req.query();
+
+    // 使用 TypeBox 验证数据
+    const isValid = Value.Check(schema, query);
+
+    if (!isValid) {
+      const errors = [...Value.Errors(schema, query)];
+      return c.json(
+        {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Query parameter validation failed',
+            details: errors.map(error => ({
+              path: error.path,
+              message: error.message,
+              expectedType: error.schema.type,
+            })),
+            timestamp: new Date().toISOString(),
+            path: c.req.path,
+          },
+        },
+        StatusCodes.BAD_REQUEST,
+      );
     }
 
-    // 默认服务器错误
-    return c.json(
-      {
-        error: {
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'An unexpected error occurred',
-          timestamp: new Date().toISOString(),
-          path: c.req.path,
+    await next();
+  });
+};
+
+/**
+ * 路径参数验证中间件
+ *
+ * @param schema - TypeBox schema 用于验证
+ * @returns Hono 中间件
+ */
+export const validateParams = (schema: TSchema) => {
+  return createMiddleware(async (c, next) => {
+    const params = c.req.param();
+
+    // 使用 TypeBox 验证数据
+    const isValid = Value.Check(schema, params);
+
+    if (!isValid) {
+      const errors = [...Value.Errors(schema, params)];
+      return c.json(
+        {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Path parameter validation failed',
+            details: errors.map(error => ({
+              path: error.path,
+              message: error.message,
+              expectedType: error.schema.type,
+            })),
+            timestamp: new Date().toISOString(),
+            path: c.req.path,
+          },
         },
-      },
-      StatusCodes.INTERNAL_SERVER_ERROR,
-    );
-  }
-});
+        StatusCodes.BAD_REQUEST,
+      );
+    }
+
+    await next();
+  });
+};

@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 import { StatusCodes } from 'http-status-codes';
+import { env } from './config/env.js';
 import { corsMiddleware } from './middleware/cors.middleware.js';
+import { errorHandlerMiddleware } from './middleware/error-handler.middleware.js';
 import { loggerMiddleware } from './middleware/logger.middleware.js';
-import { errorHandlerMiddleware } from './middleware/validation.middleware.js';
 import { authRouter } from './routes/auth.routes.js';
 import { userRouter } from './routes/user.routes.js';
-import { env } from './config/env.js';
 
 const app = new Hono();
 
@@ -15,7 +15,7 @@ app.use('*', loggerMiddleware);
 app.use('*', errorHandlerMiddleware);
 
 // 健康检查
-app.get('/health', (c) => {
+app.get('/health', c => {
   return c.json(
     {
       status: 'ok',
@@ -33,7 +33,7 @@ app.route('/api/auth', authRouter);
 app.route('/api/users', userRouter);
 
 // 404 处理
-app.notFound((c) => {
+app.notFound(c => {
   return c.json(
     {
       error: {

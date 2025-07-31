@@ -7,20 +7,19 @@ import { Type } from '@sinclair/typebox';
 
 export const LoginSchema = Type.Object({
   email: Type.String({
-    format: 'email',
-    errorMessage: 'Please enter a valid email address',
+    pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$',
+    description: 'Please enter a valid email address',
   }),
   password: Type.String({
     minLength: 6,
-    errorMessage: 'Password must be at least 6 characters long',
+    description: 'Password must be at least 6 characters long',
   }),
 });
 
 export const RegisterSchema = Type.Object({
   email: Type.String({
-    format: 'email',
-    title: 'Email Address',
-    description: 'A valid email address',
+    pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$',
+    description: 'Please enter a valid email address',
   }),
   username: Type.String({
     minLength: 3,
@@ -34,16 +33,20 @@ export const RegisterSchema = Type.Object({
     title: 'Password',
     description: 'Password with at least 6 characters',
   }),
-  firstName: Type.Optional(Type.String({
-    maxLength: 100,
-    title: 'First Name',
-    description: 'First name (optional)',
-  })),
-  lastName: Type.Optional(Type.String({
-    maxLength: 100,
-    title: 'Last Name',
-    description: 'Last name (optional)',
-  })),
+  firstName: Type.Optional(
+    Type.String({
+      maxLength: 100,
+      title: 'First Name',
+      description: 'First name (optional)',
+    }),
+  ),
+  lastName: Type.Optional(
+    Type.String({
+      maxLength: 100,
+      title: 'Last Name',
+      description: 'Last name (optional)',
+    }),
+  ),
 });
 
 export const RefreshTokenSchema = Type.Object({

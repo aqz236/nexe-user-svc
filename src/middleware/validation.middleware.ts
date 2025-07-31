@@ -26,7 +26,7 @@ export const validateBody = (schema: TSchema) => {
               message: 'Request validation failed',
               details: errors.map(error => ({
                 path: error.path,
-                message: error.schema.errorMessage || error.message,
+                message: error.schema.description || error.message,
                 expectedType: error.schema.type,
               })),
               timestamp: new Date().toISOString(),
